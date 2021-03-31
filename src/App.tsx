@@ -1,9 +1,7 @@
-import React from "react";
-// import logo from "./logo.svg";
-import "./App.css";
+import { CharactersListPage } from './pages/CharactersListPage/CharactersListPage';
 
 function App() {
-  return <div></div>;
+    return <CharactersListPage />;
 }
 
 export default App;

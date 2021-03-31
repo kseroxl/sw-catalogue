@@ -5,7 +5,7 @@ export type ListItem = {
     isSelected: boolean;
 };
 
-interface DropDownProps {
+export interface DropDownProps {
     name: string;
     list: ListItem[];
     onSelect: (name: string) => void;

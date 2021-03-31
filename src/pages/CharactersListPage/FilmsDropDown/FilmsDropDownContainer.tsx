@@ -1,24 +1,28 @@
-import { DropDownList } from '../../../components/DropDownList/DropDownList';
+import { DropDownList, ListItem } from '../../../components/DropDownList/DropDownList';
 import { Component } from 'react';
 
-type FilmListProps = {
-    onFilmSelect: (films: string[]) => void;
-};
-
-interface FilmItem {
+export interface Film {
     id: string;
     name: string;
-    isSelected: boolean;
 }
 
-type FilmListState = {
-    films: FilmItem[];
-};
+type FilmItem = ListItem & Film;
+
+interface FilmListState {
+    filmsItems: FilmItem[];
+}
+
+interface FilmListProps {
+    onFilmSelect: (films: any) => void;
+}
 
 export class FilmsDropDownContainer extends Component<FilmListProps, FilmListState> {
-    state: FilmListState = {
-        films: [],
-    };
+    constructor(props: FilmListProps) {
+        super(props);
+        this.state = {
+            filmsItems: [],
+        };
+    }
 
     componentDidMount() {
         this.getFilms();
@@ -26,19 +30,21 @@ export class FilmsDropDownContainer extends Component<FilmListProps, FilmListSta
 
     getFilms(): void {
         fetch(`${process.env.REACT_APP_SWAPI_FILMS_URL}`)
-            .then((res) => res.json())
+            .then((response) => {
+                if (!response.ok) throw new Error('Results not found');
+                return response.json();
+            })
             .then((data) => {
-                console.log(data);
                 this.setState((state) => {
-                    const films: FilmItem[] = data.results?.map((film: any) => {
+                    const filmsItems: FilmItem[] = data.results?.map((film: any) => {
                         const urlSplit = film.url.split('/');
+                        const filmItem: Film = { id: urlSplit[urlSplit.length - 2], name: film.title };
                         return {
-                            id: urlSplit[urlSplit.length - 2],
-                            name: film.title,
+                            ...filmItem,
                             isSelected: false,
                         };
                     });
-                    return { films };
+                    return { filmsItems };
                 });
             })
             .catch((error) => {
@@ -48,22 +54,35 @@ export class FilmsDropDownContainer extends Component<FilmListProps, FilmListSta
 
     selectFilm(filmName: string) {
         this.setState((state) => {
-            const films = [...state.films];
-            const toggledFilm: FilmItem = films.filter((film) => film.name === filmName)[0];
-            const index = films.indexOf(toggledFilm);
-            const filmToModify = { ...toggledFilm };
+            const filmsItems = [...state.filmsItems];
+            const toggledFilmItem: FilmItem = filmsItems.filter((filmItem) => filmItem.name === filmName)[0];
+            const index = filmsItems.indexOf(toggledFilmItem);
+            const filmToModify = { ...toggledFilmItem };
             filmToModify.isSelected = !filmToModify.isSelected;
-            films[index] = filmToModify;
-            this.props.onFilmSelect(films.filter((item) => item.isSelected).map((item) => item.name));
+            filmsItems[index] = filmToModify;
+            this.props.onFilmSelect(
+                filmsItems
+                    .filter((item) => item.isSelected)
+                    .map((item) => {
+                        return { id: item.id, name: item.name };
+                    })
+            );
             return {
-                films,
+                filmsItems,
             };
         });
     }
 
     render() {
-        return !!this.state.films ? (
-            <DropDownList name="Films" onSelect={(filmName) => this.selectFilm(filmName)} list={this.state.films} />
+        return !!this.state.filmsItems ? (
+            <DropDownList
+                name="Films"
+                onSelect={(filmName) => this.selectFilm(filmName)}
+                list={this.state.filmsItems.map((filmItem) => {
+                    const { id, ...listItem } = filmItem;
+                    return listItem;
+                })}
+            />
         ) : (
             <p>Loading</p>
         );

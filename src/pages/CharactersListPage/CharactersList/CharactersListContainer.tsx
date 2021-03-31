@@ -1,80 +1,110 @@
 import { Component } from 'react';
 import { Character } from './Character';
 import { CharactersList } from './CharactersList';
+import { Film } from '../FilmsDropDown/FilmsDropDownContainer';
 
 type CharactersFilter = {
     query: string;
-    films?: any[];
+    films?: Film[];
 };
 
 type CharactersListState = {
-    characters?: Character[];
+    characters: Character[];
+    nextPageToLoad: number;
+    isErrorOrListEnd: boolean;
     isLoading: boolean;
-    lastCharacterID: number;
 };
 
 export class CharactersListContainer extends Component<CharactersFilter, CharactersListState> {
-    state: CharactersListState = {
-        characters: [],
-        isLoading: false,
-        lastCharacterID: 1,
-    };
+    constructor(props: CharactersFilter) {
+        super(props);
+        this.state = {
+            characters: [],
+            nextPageToLoad: 1,
+            isErrorOrListEnd: false,
+            isLoading: false,
+        };
+    }
 
     componentDidMount() {
-        this.setState({ isLoading: true });
-        console.log(this.getCharacters());
-        this.getCharacters().then((data: any) => {
-            console.log(data);
-            this.setState({ characters: data, isLoading: false });
-        });
+        this.matchFilter(this.props);
     }
 
     componentWillReceiveProps(nextProps: CharactersFilter) {
-        console.log(nextProps);
-        let filterResult: Character[] = [];
-        this.matchFilter();
-        console.log(filterResult);
-        console.log(filterResult.length);
-
-        this.setState({ isLoading: false });
+        this.setState({ isErrorOrListEnd: false }, () => this.matchFilter(nextProps));
     }
 
-    matchFilter = async () => {
-        const filterResult: Character[] = [];
-        let pageNumber = 1;
-        while (filterResult.length < 10) {
-            console.log('1');
-            const response = await fetch(
-                `${process.env.REACT_APP_SWAPI_SEARCH_PEOPLE_URL}${this.props.query}&page=${pageNumber++}`
-            );
-            const json = await response.json();
-            const charactersResults = await json.results;
-            const characterEntries = await charactersResults?.map((entry: any) => this.createCharacterModel(entry));
-
-            await this.getCharactersFilms([...characterEntries]).then((characters) => {
-                console.log(characters);
-                for (let i = 0; i < characters.length; i++) {
-                    if (this.props.films && this.props.films.length) {
-                        const propsFilms = this.props.films || [];
-                        console.log(propsFilms);
-                        for (let j = 0; j < propsFilms.length; j++) {
-                            console.log(characters[i].filmNames);
-                            if (characters[i].filmNames?.indexOf(propsFilms[j]) !== -1) {
-                                filterResult.push(characters[i]);
-                                break;
-                            }
-                        }
-                    } else {
-                        filterResult.push(characters[i]);
-                    }
-                    if (filterResult.length === 10) break;
-                }
-                console.log(filterResult);
-                console.log(filterResult.length);
-                // this.setState({ characters: filterResult });
-            });
+    matchFilter = async (props: CharactersFilter, id: string = '-1'): Promise<void> => {
+        const loadMore: boolean = id !== '-1';
+        if (
+            (loadMore && +id < +this.state.characters[this.state.characters.length - 1].id) ||
+            this.state.isErrorOrListEnd
+        ) {
+            return;
         }
-        this.setState({ characters: filterResult });
+
+        let pageNumber = loadMore ? this.state.nextPageToLoad : 1;
+        let charactersNumber = loadMore ? 5 : 10;
+
+        const filterResult: Character[] = [];
+
+        this.setState({ isLoading: true });
+        while (filterResult.length < charactersNumber && !this.state.isErrorOrListEnd) {
+            try {
+                const response = await fetch(
+                    `${process.env.REACT_APP_SWAPI_SEARCH_PEOPLE_URL}${props.query}&page=${pageNumber++}`
+                ).then((res) => {
+                    if (res.ok) {
+                        return res;
+                    } else throw new Error('Result not found');
+                });
+                const json = await response.json();
+
+                const charactersPage = json.results;
+                let charactersLeft: number = 0;
+                if (loadMore) {
+                    charactersPage.forEach((ch: any, index: number) => {
+                        if (ch.name === this.state.characters[this.state.characters.length - 1].name) {
+                            charactersLeft = index + 1;
+                        }
+                    });
+                }
+
+                this.setState({ isErrorOrListEnd: charactersPage.length < charactersNumber });
+                if (!!charactersPage) {
+                    const characters = charactersPage
+                        ?.slice(charactersLeft)
+                        .map((entry: any) => this.createCharacterModel(entry));
+                    this.getCharactersFilms(characters);
+                    for (let i = 0; i < characters.length; i++) {
+                        if (props.films?.length) {
+                            for (let j = 0; j < props.films.length; j++) {
+                                if (characters[i].filmIDs?.indexOf(props.films[j].id) !== -1) {
+                                    filterResult.push(characters[i]);
+                                    break;
+                                }
+                            }
+                        } else {
+                            filterResult.push(characters[i]);
+                        }
+                        if (filterResult.length === charactersNumber) {
+                            if (charactersPage[charactersPage.length - 1].name === characters[i].name)
+                                this.setState({ nextPageToLoad: pageNumber });
+                            else this.setState({ nextPageToLoad: pageNumber - 1 });
+                            break;
+                        }
+                    }
+                }
+            } catch (e) {
+                this.setState({ isErrorOrListEnd: true });
+            }
+        }
+        if (loadMore) {
+            const charactersArr = [...this.state.characters, ...filterResult];
+            this.setState({ characters: charactersArr, isLoading: false });
+        } else {
+            this.setState({ characters: filterResult, isLoading: false });
+        }
     };
 
     createCharacterModel(responseEntry: any): Character {
@@ -85,44 +115,29 @@ export class CharactersListContainer extends Component<CharactersFilter, Charact
             height: responseEntry.height,
             gender: responseEntry.gender,
             films: responseEntry.films,
-            filmNames: [],
+            filmIDs: [],
         };
     }
 
-    getCharactersFilms = async (characters: Character[]): Promise<Character[]> => {
-        console.log(characters);
-        console.log(characters.length);
-        for (let i = 0; i < characters.length; i++) {
-            console.log(characters[i].films);
-            for (let j = 0; j < characters[i].films.length; j++) {
-                const filmSplit = films[j].split('/');
-                const index = filmSplit[filmSplit.length - 2];
-                characters[i].filmIDs.push(index);
-                // const filmResponse = await fetch(`${characters[i].films[j]}`);
-                // const filmJson = await filmResponse.json();
-                // const filmName = filmJson.title;
-                // characters[i].filmNames.push(filmName);
-                // console.log(filmName);
+    getCharactersFilms = (characters: Character[]): void => {
+        if (!!characters) {
+            for (let i = 0; i < characters.length; i++) {
+                for (let j = 0; j < characters[i].films.length; j++) {
+                    const filmSplit = characters[i].films[j].split('/');
+                    const index = filmSplit[filmSplit.length - 2];
+                    characters[i].filmIDs.push(index);
+                }
             }
         }
-        return characters;
     };
 
-    getCharacters(): Promise<Character[]> {
-        this.setState({ isLoading: true });
-        return fetch(`${process.env.REACT_APP_SWAPI_PEOPLE_URL}`)
-            .then((res) => res.json())
-            .then((data) => {
-                // this.setState({ characters: data.results, isLoading: false });
-                console.log(data);
-                return data.results;
-            })
-            .catch((error) => {
-                console.log(error);
-            });
-    }
-
     render() {
-        return <CharactersList characters={this.state.characters} />;
+        return (
+            <CharactersList
+                characters={this.state.characters || []}
+                isLoading={this.state.isLoading}
+                loadMore={(id: string) => this.matchFilter(this.props, id)}
+            />
+        );
     }
 }

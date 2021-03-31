@@ -1,0 +1,59 @@
+.characters-list-container {
+    height: 100%;
+}
+
+ul {
+    overflow-y: auto;
+    max-height: calc(90vh - 250px);
+}
+
+.character-container {
+    display: flex;
+    align-items: flex-start;
+    padding: 8px;
+}
+
+.character-container:hover {
+    padding-bottom: 6px;
+    border-width: 0 0 0 2px;
+    border-color: white;
+    border-style: solid;
+    cursor: pointer;
+}
+
+.character-avatar {
+    width: 50px;
+    height: 50px;
+    margin-right: 16px;
+
+    background-color: #778da9;
+    border-radius: 10px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.character-info > span {
+    font-size: 0.8rem;
+    color: grey;
+}
+
+.character-name {
+    margin: 0;
+}
+
+.character-avatar > span {
+    font-size: 2rem;
+}
+
+.character-details {
+    margin-left: 24px;
+}
+
+.color {
+    display: inline-block;
+    width: 30px;
+    height: 10px;
+    margin: 0 10px;
+}

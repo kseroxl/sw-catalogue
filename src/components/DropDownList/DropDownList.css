@@ -1,0 +1,43 @@
+.drop-down-container {
+    width: 250px;
+    padding: 8px;
+
+    position: relative;
+}
+
+.drop-down-header {
+    display: flex;
+    justify-content: space-between;
+    box-sizing: border-box;
+
+    padding-bottom: 8px;
+
+    border-width: 0px 0px 2px;
+    border-style: solid;
+}
+
+.fas {
+    cursor: pointer;
+}
+
+.fas:hover {
+    transform: scale(1.3);
+    transition: 0.2s;
+}
+
+.fa-sort-up {
+    margin-top: 7px;
+}
+
+.drop-down-list {
+    position: absolute;
+    width: 95%;
+    border-radius: 0 0 5px 5px;
+
+    background-color: white;
+    user-select: none;
+}
+
+.list-item {
+    padding: 8px 6px;
+}

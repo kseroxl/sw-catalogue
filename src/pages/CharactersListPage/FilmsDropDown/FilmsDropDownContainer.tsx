@@ -78,6 +78,7 @@ export class FilmsDropDownContainer extends Component<FilmListProps, FilmListSta
             <DropDownList
                 name="Films"
                 onSelect={(filmName) => this.selectFilm(filmName)}
+                darkStyle={true}
                 list={this.state.filmsItems.map((filmItem) => {
                     const { id, ...listItem } = filmItem;
                     return listItem;

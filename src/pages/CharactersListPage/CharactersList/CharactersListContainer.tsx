@@ -114,6 +114,10 @@ export class CharactersListContainer extends Component<CharactersFilter, Charact
             name: responseEntry.name,
             height: responseEntry.height,
             gender: responseEntry.gender,
+            mass: responseEntry.mass,
+            hair_color: responseEntry.hair_color,
+            skin_color: responseEntry.skin_color,
+            eye_color: responseEntry.eye_color,
             films: responseEntry.films,
             filmIDs: [],
         };
@@ -133,11 +137,13 @@ export class CharactersListContainer extends Component<CharactersFilter, Charact
 
     render() {
         return (
-            <CharactersList
-                characters={this.state.characters || []}
-                isLoading={this.state.isLoading}
-                loadMore={(id: string) => this.matchFilter(this.props, id)}
-            />
+            <div className="characters-list-container">
+                <CharactersList
+                    characters={this.state.characters || []}
+                    isLoading={this.state.isLoading}
+                    loadMore={(id: string) => this.matchFilter(this.props, id)}
+                />
+            </div>
         );
     }
 }
